@@ -40,3 +40,13 @@ class Workout(models.Model):
 
     def __str__(self):
         return f'{self.activity.name} den {self.date}'
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    login_code = models.CharField(max_length=6, blank=True, null=True)
+
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
+models.signals.post_save.connect(create_user_profile, sender=User)
