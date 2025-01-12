@@ -34,15 +34,20 @@ class SendLoginCodeView(APIView):
         code = random.randint(100000, 999999)
         user.profile.login_code = code
         user.profile.save()
+
+        #print(f'Login code for {email}: {code}')
+
+        '''
         send_mail(
             'Your Login Code',
             f'Your login code is {code}',
-            'from@example.com',
+            'leifnhammar@gmail.com',
             [email],
             fail_silently=False,
         )
-        return Response({'message': 'Login code sent'}, status=status.HTTP_200_OK)
-    
+        '''
+        return Response({'message': 'Login code sent', 'code': code}, status=status.HTTP_200_OK)
+
 class VerifyLoginCodeView(APIView):
     def post(self, request):
         email = request.data.get('email')
