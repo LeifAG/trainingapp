@@ -11,6 +11,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 import random
+from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
 class ActivityViewSet(viewsets.ModelViewSet):
     serializer_class = ActivitySerializer
@@ -18,6 +20,9 @@ class ActivityViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Activity.objects.filter(user=self.request.user)
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class WorkoutViewSet(viewsets.ModelViewSet):
     serializer_class = WorkoutSerializer
@@ -25,7 +30,9 @@ class WorkoutViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Workout.objects.filter(user=self.request.user)
-
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class SendLoginCodeView(APIView):
     def post(self, request):
@@ -35,17 +42,6 @@ class SendLoginCodeView(APIView):
         user.profile.login_code = code
         user.profile.save()
 
-        #print(f'Login code for {email}: {code}')
-
-        '''
-        send_mail(
-            'Your Login Code',
-            f'Your login code is {code}',
-            'leifnhammar@gmail.com',
-            [email],
-            fail_silently=False,
-        )
-        '''
         return Response({'message': 'Login code sent', 'code': code}, status=status.HTTP_200_OK)
 
 class VerifyLoginCodeView(APIView):
@@ -59,10 +55,34 @@ class VerifyLoginCodeView(APIView):
                 user.profile.save()
                 login(request, user)
                 refresh = RefreshToken.for_user(user)
-                return Response({
-                    'refresh': str(refresh),
+                response = Response({
                     'access': str(refresh.access_token),
                 }, status=status.HTTP_200_OK)
+                response.set_cookie(
+                    key='refresh_token',
+                    value=str(refresh),
+                    httponly=True,
+                    secure=True,
+                    path='api/refresh/',
+                    samesite='Strict'
+                )
+                return response
             return Response({'error': 'Invalid code'}, status=status.HTTP_400_BAD_REQUEST)
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+class CustomRefreshView(TokenRefreshView):
+    def get(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get('refresh_token')
+
+        if refresh_token is None:
+            return Response({'error':'Refresh token not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = self.get_serializer(data={'refresh':refresh_token})
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError as e:
+            raise InvalidToken(e.args[0])
+        
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)

@@ -87,7 +87,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
-
+'''
 EMAIL_BACKEND = 'django_mailjet.backends.MailjetBackend'
 EMAIL_HOST = 'in-v3.mailjet.com'
 MAILJET_API_KEY = 'XXXXXXXXXXXXXXXXXXXXXXXXXX'
@@ -97,7 +97,7 @@ EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 EMAIL_TIMEOUT = 30
 DEFAULT_FROM_EMAIL = 'Leif <leifnhammar@gmail.com>'
-
+'''
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
